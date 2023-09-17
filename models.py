@@ -1,6 +1,7 @@
 from flask_jwt_extended import create_access_token
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
@@ -36,9 +37,10 @@ class User(db.Model):
 
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.String(255), unique=True, nullable=False)
     body = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     def to_dict(self):
         return {

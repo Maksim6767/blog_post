@@ -1,25 +1,42 @@
-@app.route("/", methods=["GET"])
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import BlogPost
+from app import db
+
+blog_bp = Blueprint("blog", __name__)
+
+
+@blog_bp.route("/", methods=["GET"])
 @jwt_required()
 def home():
     return jsonify({"msg": "Homepage"}), 200
 
 
-@app.route("/api/blog/add", methods=["POST"])
+@blog_bp.route("/api/blog/add", methods=["POST"])
 @jwt_required()
 def blog_add():
     data = request.get_json()
     title = data["title"]
     body = data["body"]
 
+    existing_post = BlogPost.query.filter_by(title=title).first()
+
+    if existing_post:
+        return jsonify({"error": "Запись уже существует"})
+
+    current_user_id = get_jwt_identity()
+    print(current_user_id)
+
     try:
-        blog_post = BlogPost(title=title, body=body)
-        db.session.add(blog_post)
+        new_blog_post = BlogPost(title=title, body=body, user_id=current_user_id)
+        print(new_blog_post)
+        db.session.add(new_blog_post)
         db.session.commit()
         return (
             jsonify(
                 {
                     "msg": f'Успешно создана запись в блоге: "{title}"',
-                    "blog_post": blog_post.to_dict(),
+                    "new_blog_post": new_blog_post.to_dict(),
                 }
             ),
             201,
@@ -28,7 +45,7 @@ def blog_add():
         return jsonify({"error": str(er)}), 500
 
 
-@app.route("/api/blog", methods=["GET"])
+@blog_bp.route("/api/blog", methods=["GET"])
 @jwt_required()
 def blog():
     blog_posts = BlogPost.query.all()
@@ -36,7 +53,7 @@ def blog():
     return jsonify(blog_posts_result), 200
 
 
-@app.route("/api/blog/<int:post_id>", methods=["GET"])
+@blog_bp.route("/api/blog/<int:post_id>", methods=["GET"])
 @jwt_required()
 def blog_get_post_by_id(post_id):
     blog_post = BlogPost.query.get(post_id)
@@ -47,7 +64,7 @@ def blog_get_post_by_id(post_id):
     return jsonify(blog_post.to_dict(), 200)
 
 
-@app.route("/api/blog/<int:post_id>", methods=["PUT"])
+@blog_bp.route("/api/blog/<int:post_id>", methods=["PUT"])
 @jwt_required()
 def blog_update_post_by_id(post_id):
     data = request.get_json()
@@ -73,7 +90,7 @@ def blog_update_post_by_id(post_id):
         )
 
 
-@app.route("/api/blog/<int:post_id>", methods=["DELETE"])
+@blog_bp.route("/api/blog/<int:post_id>", methods=["DELETE"])
 @jwt_required()
 def delete_blog_post_by_id(post_id):
     blog_post = BlogPost.query.get(post_id)

@@ -1,4 +1,16 @@
-@app.route("/api/register", methods=["POST"])
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import (
+    jwt_required,
+    create_access_token,
+    get_jwt_identity,
+)
+from models import User
+from app import db
+
+auth_bp = Blueprint("auth", __name__)
+
+
+@auth_bp.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
     username = data["username"]
@@ -19,7 +31,7 @@ def register():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/login", methods=["POST"])
+@auth_bp.route("/api/login", methods=["POST"])
 def login():
     username = request.json.get("username")
     password = request.json.get("password")
