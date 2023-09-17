@@ -25,7 +25,6 @@ def blog_add():
         return jsonify({"error": "Запись уже существует"})
 
     current_user_id = get_jwt_identity()
-    print(current_user_id)
 
     try:
         new_blog_post = BlogPost(title=title, body=body, user_id=current_user_id)
@@ -103,3 +102,24 @@ def delete_blog_post_by_id(post_id):
         return jsonify(
             {"msg": f"Успешно удалена запись в блоге с идентификатором: {post_id}"}, 200
         )
+
+
+@blog_bp.route("/api/blog/user/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_blog_posts_by_user(user_id):
+    current_user_id = get_jwt_identity()
+
+    if current_user_id != user_id:
+        return jsonify({"error": "Доступ запрещен"}), 403
+
+    user_posts = BlogPost.query.filter_by(user_id=user_id).all()
+
+    user_posts_result = [post.to_dict() for post in user_posts]
+
+    return jsonify(
+        {
+            "msg": f'Успешно получены посты для пользователя: "{user_id}"',
+            "user_posts_result": user_posts_result,
+        },
+        200,
+    )
